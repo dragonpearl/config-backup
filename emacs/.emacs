@@ -1,6 +1,7 @@
 (setq package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
-   ("marmalade" . "http://marmalade-repo.org/packages/")
-   ("melpa" . "http://melpa.milkbox.net/packages/")))
+                         ("marmalade" . "http://marmalade-repo.org/packages/")
+                         ("org" . "http://orgmode.org/elpa/")
+                         ("melpa" . "http://melpa.milkbox.net/packages/")))
 ;;http://www.cnblogs.com/bamanzi/archive/2011/02/28/emacs-cua-rectangle-cool.html 块操作
 ;;自动加载包管理器下载的包
 (let ((default-directory "~/.emacs.d/elpa/"))
@@ -14,6 +15,7 @@
       (load-library "sql-indent"))
 ;;设置字体 describe-font得到后面字体
 (set-default-font "文泉驿等宽微米黑-12")
+
 ;;yasnippet 模板补全工具 如for[tab]键补全
 (require 'yasnippet)
 (yas-global-mode 1)
@@ -21,6 +23,7 @@
 (setq org-export-html-postamble nil)
 ;;hide toolbar
 (tool-bar-mode -1)
+(setq auto-image-file-mode t)
 ;;显示列号
 (setq column-number-mode t);;显示在任务栏
 (global-linum-mode t);;左边栏
@@ -31,6 +34,9 @@
 ;;靠近屏幕滚动
 (setq scroll-margin 2
       scroll-conservatively 10000)
+;;括号跳转
+(global-set-key (kbd "C-M-n") 'forward-list)
+(global-set-key (kbd "C-M-p") 'backward-list)
 ;;窗口大小
 (global-set-key (kbd "<C-up>") 'shrink-window)
 (global-set-key (kbd "<C-down>") 'enlarge-window)
@@ -38,15 +44,26 @@
 (global-set-key (kbd "<C-right>") 'enlarge-window-horizontally)
 ;;缺省mode 为text-mode
 (setq default-major-mode 'text-mode)
-;;可以直接打开显示图片
 
+(global-set-key
+ (kbd "C-o")
+ (lambda ()
+   (interactive)
+   (let ((oldpos (point)))
+     (end-of-line)
+     (newline-and-indent))))
 ;;htmlize
-(add-to-list 'load-path "/home/eric/.emacs.d/")
+(add-to-list 'load-path "/home/eric/.emacs.d/alone")
 (add-to-list 'load-path "/home/eric/.emacs.d/private/")
-(require 'htmlize)
-(require 'org-html5presentation);;使用 org-export-as-html5-.....
+(add-to-list 'load-path "/home/eric/.emacs.d/private/org-impress-js.el")
+(add-to-list 'load-path "/tmp/org-mode/lisp/")
 
-(iswitchb-mode 1)
+(require 'ox-impress-js)
+
+(require 'htmlize)
+;(require 'org-html5presentation);;使用 org-export-as-html5-.....
+(require 'ox-html5slide)
+;;(iswitchb-mode 1)
 ;;org src 高亮
 (setq org-src-fontify-natively t)
 (require 'feng-highlight)
@@ -75,11 +92,21 @@
 (setq wcy-switch-buffer-inactive-buffer-face  'secondary-selection )
 
 ;;执行代码块
+;;C-c C-x C-v 打开emacs里的图片
+;; org-display-inline-images 显示org图片
+;;C-c C-o 也能打开图片在独立窗口
+;;C-c ' 打开代码块的编辑mode  http://orgmode.org/guide/Working-With-Source-Code.html
+;;graphviz-dot C-M-i 做自动补全
+(setq org-ditaa-jar-path "/usr/share/emacs/site-lisp/org_contrib/scripts/ditaa.jar")
+(setq org-confirm-babel-evaluate nil)
+(add-to-list 'org-src-lang-modes (quote ("dot" . graphviz-dot)))
 (org-babel-do-load-languages
  'org-babel-load-languages
  '((sh .t)
    (python .t)
    (emacs-lisp .t)
+   (ditaa .t)
+   (dot .t)
    ))
 (put 'downcase-region 'disabled nil)
 
@@ -122,22 +149,31 @@
          ;:makeindex t
          :body-only t
         )
-        ("org-static"                ;Used to publish static files
-         :base-directory "/home/eric/own/website/jekyll/static/"
-         :base-extension "css\\|js\\|png\\|jpg\\|gif\\|pdf\\|mp3\\|ogg\\|swf"
-         :publishing-directory "/home/eric/own/html/"
-         :recursive t
-         :publishing-function org-publish-attachment
-         )
-        ("blog" :components ("org-notes" "org-static")) ;combine "org-static" and "org-static" into one function call
+        ;; ("org-static"                ;Used to publish static files
+        ;;  :base-directory "/home/eric/own/website/jekyll/static/"
+        ;;  :base-extension "css\\|js\\|png\\|jpg\\|gif\\|pdf\\|mp3\\|ogg\\|swf"
+        ;;  :publishing-directory "/home/eric/own/html/"
+        ;;  :recursive t
+        ;;  :publishing-function org-publish-attachment
+        ;;  )
+        ;; ("blog" :components ("org-notes" "org-static")) ;combine "org-static" and "org-static" into one function call
 ))
 ;;(global-set-key (kbd "C-c C-e p") 'org-publish)
 ;;org-mode css
 ;; (setq org-export-html-style
-;;       "<link rel=\"stylesheet\" type=\"text/css\" href=\"../css/style.css\" />")
+;;       "<link rel=\"stylesheet\" type=\"text/css\"
+;;       href=\"../css/style.css\" />")
+(add-hook
+'org-mode-hook
+'(lambda ()
+   (local-set-key (kbd "<C-return>") 'set-mark-command)
+   ;(set-fill-column 120)
+   ))
+
 (require 'auto-complete-config)
 (add-to-list 'ac-dictionary-directories "/home/eric/.emacs.d/elpa/auto-complete-20140414.2324/dict/")
 (ac-config-default)
+
 ;c++头文件补全
 (defun my:ac-c-headers-init ()
   (require 'auto-complete-c-headers)
@@ -175,6 +211,8 @@
   (setq c-basic-offset 4)
   (c-set-offset 'substatement-open 0))
 (add-hook 'c++-mode-hook 'my-c++-mode-hook)
+(add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
+(add-to-list 'auto-mode-alist '("\\.c\\'" . c++-mode))
 ;;c/c++代码风格 google-c-syle
 
 ;;scheme --lisp-- config
@@ -197,17 +235,20 @@
 ;;自动补全括号对等
 (require 'smartparens-config)
 (smartparens-global-mode 1)
-;;org2blog  wordpress 插件
-
-;;(require 'helm-config)
-;;(helm-mode 1)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(custom-safe-themes (quote ("47583b577fb062aeb89d3c45689a4f2646b7ebcb02e6cb2d5f6e2790afb91a18" default))))
+ '(custom-safe-themes
+   (quote
+    ("47583b577fb062aeb89d3c45689a4f2646b7ebcb02e6cb2d5f6e2790afb91a18" default)))
+ '(safe-local-variable-values
+   (quote
+    ((c-indent-level . 8)
+     (whitespace-line-column . 80)
+     (lexical-binding . t)))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -216,47 +257,33 @@
  )
 (setq sgml-basic-offset 4)
 
-;; python-mode settings
-;; python coding
-;; 1.Pymacs.(make&&python setup.py install)
-;; 2.rope (python setup.py install)
-;; 3.ropemacs(python setup.py install)
-;; complete use M-/
-;; show the document use c-c d;c-c p to lookup pydoc; M-/ to rope complete
-;; (require 'pymacs)
-;; ;; Initialize Pymacs
-;; (autoload 'pymacs-apply "pymacs")
-;; (autoload 'pymacs-call "pymacs")
-;; (autoload 'pymacs-eval "pymacs" 0 t)
-;; (autoload 'pymacs-exec "pymacs" 0 t)
-;; (autoload 'pymacs-load "pymacs" 0 t)
-;; ;; Initialize Rope
-;; (pymacs-load "ropemacs" "rope-")
-;; (setq ropemacs-enable-autoimport t)
-;lookup pydoc
-(defun hohe2-lookup-pydoc ()
-  (interactive)
-  (let ((curpoint (point)) (prepoint) (postpoint) (cmd))
-    (save-excursion
-      (beginning-of-line)
-      (setq prepoint (buffer-substring (point) curpoint)))
-    (save-excursion
-      (end-of-line)
-      (setq postpoint (buffer-substring (point) curpoint)))
-    (if (string-match "[_a-z][_\\.0-9a-z]*$" prepoint)
-        (setq cmd (substring prepoint (match-beginning 0) (match-end 0))))
-    (if (string-match "^[_0-9a-z]*" postpoint)
-        (setq cmd (concat cmd (substring postpoint (match-beginning 0) (match-end 0)))))
-    (if (string= cmd "") nil
-      (let ((max-mini-window-height 0))
-        (shell-command (concat "pydoc " cmd))))))
+;;python
+;;C-c C-d文档
+;;自动提示下C-d:提示的文档. C-w:显示上下文
+(defun pydoc (w)
+"Launch PyDOC on the Word at Point"
+(interactive
+(list (let* ((word (thing-at-point 'word))
+(input (read-string 
+(format "pydoc entry%s: " 
+(if (not word) 
+"" 
+(format " (default %s)" word))))))
+(if (string= input "") 
+(if (not word) (error "No pydoc args given")
+word) ;sinon word
+input)))) ;sinon input
+(save-window-excursion
+(shell-command (concat "pydoc2 " w) "*PYDOCS*"))
+(view-buffer-other-window "*PYDOCS*" nil 'bury-buffer))
+;;(view-buffer "*PYDOCS*" 'bury-buffer))
 
-(add-hook 'python-mode-hook
-          (lambda ()
-            (local-set-key (kbd "C-c p") 'hohe2-lookup-pydoc)))
+(require 'elpy nil t)
+(elpy-enable)
+(setq elpy-rpc-backend "jedi")
 ;;;python end
 ;;自动截断行
-(auto-fill-mode 0)
+(auto-fill-mode 1)
 
 ;;内部css样式到org-mode
 ; export html with custom inline css
@@ -279,7 +306,7 @@
 ;                         "</style>\n"))))
 ;(add-hook 'org-mode-hook 'my-inline-custom-css-hook)
 ;;;;;;;;;;;;
-(setq org-export-language-setup (append org-export-language-setup '(("zh-CN" "作者" "日期" "目录" "脚注"))))
+;(setq org-export-language-setup (append org-export-language-setup '(("zh-CN" "作者" "日期" "目录" "脚注"))))
 (setq org-export-default-language "zh-CN")
 
 ;;;php
@@ -324,3 +351,113 @@
 
 (add-to-list 'load-path "/home/eric/.emacs.d/private/php-htm-mode")
 (load-library "/home/eric/.emacs.d/private/php-htm-mode/multi-mode.el")
+;(load-library "/home/eric/.emacs.d/private/php-htm-mode/php-htm-mode.el")
+
+(menu-bar-mode t)
+;;go lang
+(setenv "GOPATH" "~/work/NC/trunk:")
+(require 'go-mode-load)
+(require 'go-autocomplete)
+(require 'go-eldoc)
+(add-hook 'go-mode-hook 'go-eldoc-setup)
+;; speedbar
+(add-hook
+'go-mode-hook
+'(lambda ()
+   (setq gofmt-command "goimports")
+   (add-hook 'before-save-hook 'gofmt-before-save)
+   (if (not (string-match "go" compile-command))
+       (set (make-local-variable 'compile-command)
+            "go build -v"))
+   ;; gocode
+   (auto-complete-mode 1)
+   (setq ac-sources '(ac-source-go))
+   ;; Imenu & Speedbar
+   (setq imenu-generic-expression
+         '(("type" "^type *\\([^ \t\n\r\f]*\\)" 1)
+           ("func" "^func *\\(.*\\) {" 1)))
+   (imenu-add-to-menubar "Index")
+   ;; Outline mode
+   (make-local-variable 'outline-regexp)
+   (setq outline-regexp "//\\.\\|//[^\r\n\f][^\r\n\f]\\|pack\\|func\\|impo\\|cons\\|var.\\|type\\|\t\t*....")
+   (outline-minor-mode 1)
+   (local-set-key "\M-a" 'outline-previous-visible-heading)
+   (local-set-key "\M-e" 'outline-next-visible-heading)
+   (local-set-key "\C-c\C-b" 'go)
+   (local-set-key "\C-c\C-p" 'gopro)
+   (local-set-key "\C-c\C-u" 'pop-tag-mark)
+   ;; Menu bar
+   (require 'easymenu)
+   (defconst go-hooked-menu
+     '("Go tools"
+       ["Go run buffer " go t]
+       ["Go run project " gopro t]
+       ["Go reformat buffer" go-fmt-buffer t]
+       ["Go jump" godef-jump t]
+       ["Go jump back" pop-tag-mark t]
+       ["Get describe" godef-describe t]
+       ["Add import" go-import-add t]
+       ["Go check buffer" go-fix-buffer t]))
+   (easy-menu-define
+     go-added-menu
+     (current-local-map)
+     "Go tools"
+     go-hooked-menu)
+
+   ;; Other
+   (setq show-trailing-whitespace t)
+   ))
+;; helper function
+(defun go ()
+  "run current buffer"
+  (interactive)
+  (compile (concat "go run " (buffer-file-name))))
+(defun gopro ()
+  "run current project"
+  (interactive)
+  (compile (concat "go build&&./" 
+                   (file-name-nondirectory
+                    (directory-file-name
+                     (file-name-directory (buffer-file-name)))))))
+
+;; helper function
+(defun go-fmt-buffer ()
+    "run gofmt on current buffer"
+    (interactive)
+    (if buffer-read-only
+    (progn
+        (ding)
+        (message "Buffer is read only"))
+    (let ((p (line-number-at-pos))
+    (filename (buffer-file-name))
+    (old-max-mini-window-height max-mini-window-height))
+        (show-all)
+        (if (get-buffer "*Go Reformat Errors*")
+    (progn
+        (delete-windows-on "*Go Reformat Errors*")
+        (kill-buffer "*Go Reformat Errors*")))
+        (setq max-mini-window-height 1)
+        (if (= 0 (shell-command-on-region (point-min) (point-max) "gofmt" "*Go Reformat Output*" nil "*Go Reformat Errors*" t))
+    (progn
+        (erase-buffer)
+        (insert-buffer-substring "*Go Reformat Output*")
+        (goto-char (point-min))
+        (forward-line (1- p)))
+    (with-current-buffer "*Go Reformat Errors*"
+    (progn
+        (goto-char (point-min))
+        (while (re-search-forward "<standard input>" nil t)
+        (replace-match filename))
+        (goto-char (point-min))
+        (compilation-mode))))
+        (setq max-mini-window-height old-max-mini-window-height)
+        (delete-windows-on "*Go Reformat Output*")
+        (kill-buffer "*Go Reformat Output*"))))
+;; helper function
+(defun go-fix-buffer ()
+    "run gofix on current buffer"
+    (interactive)
+    (show-all)
+    (shell-command-on-region (point-min) (point-max) "go tool fix -diff"))
+
+;;M-g n /M-g p 上下跳grep-find
